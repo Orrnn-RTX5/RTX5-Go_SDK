@@ -22,7 +22,7 @@ It does not yet include the full professional broker SDK surface for trader/webt
 ## Install
 
 ```bash
-go get github.com/rtx5-orrnn/rtx5-sdk-go
+go get github.com/YoForex005/RTX5-Go_SDK
 ```
 
 For private broker delivery, pin a tag or commit.
@@ -37,7 +37,7 @@ import (
 	"fmt"
 	"os"
 
-	rtx5sdk "github.com/rtx5-orrnn/rtx5-sdk-go"
+	rtx5sdk "github.com/YoForex005/RTX5-Go_SDK"
 )
 
 func main() {
