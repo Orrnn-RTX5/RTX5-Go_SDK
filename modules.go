@@ -230,13 +230,14 @@ func (m MarketDataAPI) Candles(ctx context.Context, symbol string, req TimeRange
 	if err := validateSymbol(symbol); err != nil {
 		return nil, err
 	}
-	if err := validateTimeRange(req.From, req.To); err != nil {
+	from, to, err := normalizeTimeRange(req.From, req.To)
+	if err != nil {
 		return nil, err
 	}
 	query := url.Values{}
 	query.Set("symbol", symbol)
-	query.Set("from", req.From)
-	query.Set("to", req.To)
+	query.Set("from", from)
+	query.Set("to", to)
 	return m.client.getWithSession(ctx, "/ChartRequest", query)
 }
 
@@ -244,13 +245,14 @@ func (m MarketDataAPI) TickHistory(ctx context.Context, symbol string, req TimeR
 	if err := validateSymbol(symbol); err != nil {
 		return nil, err
 	}
-	if err := validateTimeRange(req.From, req.To); err != nil {
+	from, to, err := normalizeTimeRange(req.From, req.To)
+	if err != nil {
 		return nil, err
 	}
 	query := url.Values{}
 	query.Set("symbol", symbol)
-	query.Set("from", req.From)
-	query.Set("to", req.To)
+	query.Set("from", from)
+	query.Set("to", to)
 	return m.client.getWithSession(ctx, "/TickHistory", query)
 }
 
@@ -427,13 +429,14 @@ func (r ReportsAPI) DealHistory(ctx context.Context, req LoginTimeRangeRequest) 
 	if err := requirePositiveInt64("login", req.Login); err != nil {
 		return nil, err
 	}
-	if err := validateTimeRange(req.From, req.To); err != nil {
+	from, to, err := normalizeTimeRange(req.From, req.To)
+	if err != nil {
 		return nil, err
 	}
 	query := url.Values{}
 	query.Set("login", strconv.FormatInt(req.Login, 10))
-	query.Set("from", req.From)
-	query.Set("to", req.To)
+	query.Set("from", from)
+	query.Set("to", to)
 	return r.client.getWithSession(ctx, "/DealHistory", query)
 }
 
@@ -441,13 +444,14 @@ func (r ReportsAPI) DailyForLogin(ctx context.Context, req LoginTimeRangeRequest
 	if err := requirePositiveInt64("login", req.Login); err != nil {
 		return nil, err
 	}
-	if err := validateTimeRange(req.From, req.To); err != nil {
+	from, to, err := normalizeTimeRange(req.From, req.To)
+	if err != nil {
 		return nil, err
 	}
 	query := url.Values{}
 	query.Set("login", strconv.FormatInt(req.Login, 10))
-	query.Set("from", req.From)
-	query.Set("to", req.To)
+	query.Set("from", from)
+	query.Set("to", to)
 	return r.client.getWithSession(ctx, "/DailyRequest", query)
 }
 
@@ -455,13 +459,14 @@ func (r ReportsAPI) DailyForGroup(ctx context.Context, req GroupTimeRangeRequest
 	if err := validateGroupName(req.Group); err != nil {
 		return nil, err
 	}
-	if err := validateTimeRange(req.From, req.To); err != nil {
+	from, to, err := normalizeTimeRange(req.From, req.To)
+	if err != nil {
 		return nil, err
 	}
 	query := url.Values{}
 	query.Set("group", req.Group)
-	query.Set("from", req.From)
-	query.Set("to", req.To)
+	query.Set("from", from)
+	query.Set("to", to)
 	return r.client.getWithSession(ctx, "/DailyRequestByGroup", query)
 }
 

@@ -84,6 +84,23 @@ func main() {
 | `Reports()` | Deal history and daily reports |
 | `Raw()` | Low-level fallback for endpoints not yet wrapped |
 
+## Time Ranges
+
+For deal history, daily reports, candles, and tick history, prefer the `time.Time`
+constructors:
+
+```go
+from := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+to := time.Date(2026, 6, 16, 0, 0, 0, 0, time.UTC)
+
+deals, err := client.Reports().DealHistory(ctx, rtx5sdk.NewLoginTimeRange(login, from, to))
+bars, err := client.MarketData().Candles(ctx, "EURUSD", rtx5sdk.NewTimeRange(from, to))
+```
+
+The string request fields remain supported. The SDK normalizes RFC3339,
+`YYYY-MM-DDTHH:MM:SS`, `YYYY-MM-DD`, and Unix epoch timestamps into the manager
+backend format before sending `from` and `to`.
+
 ## Runtime Flow
 
 ```text

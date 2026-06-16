@@ -686,34 +686,29 @@ Current limitation:
 
 ## Implement Reports
 
+Prefer the `time.Time` helpers for all time-window calls. The SDK accepts
+RFC3339 strings, `YYYY-MM-DDTHH:MM:SS`, `YYYY-MM-DD`, and Unix epoch timestamps,
+but it normalizes them before sending `from` and `to` to the manager backend.
+
 Deal history:
 
 ```go
-deals, err := client.Reports().DealHistory(ctx, rtx5sdk.LoginTimeRangeRequest{
-	Login: login,
-	From:  "2026-06-01T00:00:00Z",
-	To:    "2026-06-15T23:59:59Z",
-})
+from := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+to := time.Date(2026, 6, 16, 0, 0, 0, 0, time.UTC)
+
+deals, err := client.Reports().DealHistory(ctx, rtx5sdk.NewLoginTimeRange(login, from, to))
 ```
 
 Daily report for one login:
 
 ```go
-daily, err := client.Reports().DailyForLogin(ctx, rtx5sdk.LoginTimeRangeRequest{
-	Login: login,
-	From:  "2026-06-01T00:00:00Z",
-	To:    "2026-06-15T23:59:59Z",
-})
+daily, err := client.Reports().DailyForLogin(ctx, rtx5sdk.NewLoginTimeRange(login, from, to))
 ```
 
 Daily report for a group:
 
 ```go
-daily, err := client.Reports().DailyForGroup(ctx, rtx5sdk.GroupTimeRangeRequest{
-	Group: "demo/STD",
-	From:  "2026-06-01T00:00:00Z",
-	To:    "2026-06-15T23:59:59Z",
-})
+daily, err := client.Reports().DailyForGroup(ctx, rtx5sdk.NewGroupTimeRange("demo/STD", from, to))
 ```
 
 For large reports, keep the SDK default response limit in mind. If a legitimate report is larger than 32 MiB, increase `MaxResponseBytes` only for the backend job that needs it, and prefer time slicing or pagination.

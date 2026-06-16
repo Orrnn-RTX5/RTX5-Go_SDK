@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"time"
 )
 
 type Value = any
@@ -100,16 +101,39 @@ type TimeRangeRequest struct {
 	To   string
 }
 
+func NewTimeRange(from, to time.Time) TimeRangeRequest {
+	return TimeRangeRequest{
+		From: from.UTC().Format(managerTimeLayout),
+		To:   to.UTC().Format(managerTimeLayout),
+	}
+}
+
 type LoginTimeRangeRequest struct {
 	Login int64
 	From  string
 	To    string
 }
 
+func NewLoginTimeRange(login int64, from, to time.Time) LoginTimeRangeRequest {
+	return LoginTimeRangeRequest{
+		Login: login,
+		From:  from.UTC().Format(managerTimeLayout),
+		To:    to.UTC().Format(managerTimeLayout),
+	}
+}
+
 type GroupTimeRangeRequest struct {
 	Group string
 	From  string
 	To    string
+}
+
+func NewGroupTimeRange(group string, from, to time.Time) GroupTimeRangeRequest {
+	return GroupTimeRangeRequest{
+		Group: group,
+		From:  from.UTC().Format(managerTimeLayout),
+		To:    to.UTC().Format(managerTimeLayout),
+	}
 }
 
 const MaxGroupLeverage uint32 = 10000

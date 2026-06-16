@@ -16,6 +16,12 @@ This guide explains how to use `rtx5-sdk-go` inside a Go CRM backend.
 
 It is not a full CRM. Your CRM must still implement frontend, user login, database, admin panel, audit logs, and credential storage.
 
+For time-window calls such as deal history, daily reports, candles, and tick
+history, use `NewLoginTimeRange`, `NewGroupTimeRange`, or `NewTimeRange` with
+`time.Time` values. String fields are still accepted, but the SDK now normalizes
+RFC3339, `YYYY-MM-DDTHH:MM:SS`, `YYYY-MM-DD`, and Unix epoch timestamps before
+calling the manager backend.
+
 ## Recommended Architecture
 
 ```text

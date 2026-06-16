@@ -7,8 +7,10 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestBuildsURLWithQueryParams(t *testing.T) {
@@ -268,6 +270,86 @@ func TestPositionsAndOrdersUseBackendLoginsArrayParam(t *testing.T) {
 		if strings.Contains(got, "login=1001") {
 			t.Fatalf("request used stale login query param: %s", got)
 		}
+	}
+}
+
+func TestTimeRangeAPIsNormalizeQueryParams(t *testing.T) {
+	var requests []map[string]string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		requests = append(requests, map[string]string{
+			"path":   r.URL.Path,
+			"from":   q.Get("from"),
+			"to":     q.Get("to"),
+			"login":  q.Get("login"),
+			"group":  q.Get("group"),
+			"symbol": q.Get("symbol"),
+		})
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer server.Close()
+
+	client, err := Builder().BaseURL(server.URL).Build()
+	if err != nil {
+		t.Fatal(err)
+	}
+	client.saveSession(&Session{Token: "access"})
+
+	if _, err := client.Reports().DealHistory(context.Background(), LoginTimeRangeRequest{
+		Login: 1001,
+		From:  "2026-06-01T03:00:00+03:00",
+		To:    "2026-06-02T03:00:00+03:00",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Reports().DailyForLogin(context.Background(), LoginTimeRangeRequest{
+		Login: 1001,
+		From:  "2026-06-01T00:00:00.999999999Z",
+		To:    "2026-06-02T00:00:00.999999999Z",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Reports().DailyForGroup(context.Background(), GroupTimeRangeRequest{
+		Group: "demo/STD",
+		From:  "2026-06-01",
+		To:    "2026-06-02",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.MarketData().Candles(context.Background(), "EURUSD", TimeRangeRequest{
+		From: "2026-06-01 00:00:00",
+		To:   "2026-06-02 00:00:00",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	epochFrom := strconv.FormatInt(time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC).UnixMilli(), 10)
+	epochTo := strconv.FormatInt(time.Date(2026, 6, 2, 0, 0, 0, 0, time.UTC).UnixMilli(), 10)
+	if _, err := client.MarketData().TickHistory(context.Background(), "EURUSD", TimeRangeRequest{
+		From: epochFrom,
+		To:   epochTo,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(requests) != 5 {
+		t.Fatalf("requests = %#v", requests)
+	}
+	for _, got := range requests {
+		if got["from"] != "2026-06-01T00:00:00" {
+			t.Fatalf("%s from = %q", got["path"], got["from"])
+		}
+		if got["to"] != "2026-06-02T00:00:00" {
+			t.Fatalf("%s to = %q", got["path"], got["to"])
+		}
+	}
+}
+
+func TestTimeRangeRejectsInvalidOrReversedInput(t *testing.T) {
+	if _, _, err := normalizeTimeRange("06/01/2026", "2026-06-02T00:00:00Z"); err == nil {
+		t.Fatal("expected invalid date format error")
+	}
+	if _, _, err := normalizeTimeRange("2026-06-02T00:00:00Z", "2026-06-01T00:00:00Z"); err == nil {
+		t.Fatal("expected reversed range error")
 	}
 }
 

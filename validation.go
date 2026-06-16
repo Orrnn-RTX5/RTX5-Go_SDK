@@ -3,15 +3,23 @@ package rtx5sdk
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 )
 
 const (
-	maxSymbolLen  = 64
-	maxCommentLen = 512
-	maxRangeLen   = 64
-	maxGroupLen   = 128
-	maxPathLen    = 256
+	maxSymbolLen       = 64
+	maxCommentLen      = 512
+	maxRangeLen        = 64
+	maxGroupLen        = 128
+	maxPathLen         = 256
+	managerTimeLayout  = "2006-01-02T15:04:05"
+	compactTimeLayout  = "2006-01-02 15:04:05"
+	managerDateLayout  = "2006-01-02"
+	epochMillisDivisor = int64(1000)
+	epochMicrosDivisor = int64(1000 * 1000)
+	epochNanosDivisor  = int64(1000 * 1000 * 1000)
 )
 
 var allowedOrderOperations = map[string]struct{}{
@@ -89,14 +97,79 @@ func validateBalanceAction(action BalanceAction) error {
 	return nil
 }
 
-func validateTimeRange(from, to string) error {
-	if err := requireBoundedText("from", from, maxRangeLen); err != nil {
-		return err
+func normalizeTimeRange(from, to string) (string, string, error) {
+	normalizedFrom, fromTime, err := normalizeManagerTime("from", from)
+	if err != nil {
+		return "", "", err
 	}
-	if err := requireBoundedText("to", to, maxRangeLen); err != nil {
-		return err
+	normalizedTo, toTime, err := normalizeManagerTime("to", to)
+	if err != nil {
+		return "", "", err
 	}
-	return nil
+	if toTime.Before(fromTime) {
+		return "", "", InvalidInputError{Message: "to must not be before from"}
+	}
+	return normalizedFrom, normalizedTo, nil
+}
+
+func normalizeManagerTime(field, value string) (string, time.Time, error) {
+	if err := requireBoundedText(field, value, maxRangeLen); err != nil {
+		return "", time.Time{}, err
+	}
+
+	raw := strings.TrimSpace(value)
+	if t, ok, err := parseEpochTime(raw); ok || err != nil {
+		if err != nil {
+			return "", time.Time{}, err
+		}
+		utc := t.UTC()
+		return utc.Format(managerTimeLayout), utc, nil
+	}
+
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		managerTimeLayout,
+		compactTimeLayout,
+		managerDateLayout,
+	}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, raw); err == nil {
+			utc := t.UTC()
+			return utc.Format(managerTimeLayout), utc, nil
+		}
+	}
+
+	return "", time.Time{}, InvalidInputError{Message: fmt.Sprintf("%s must be RFC3339, YYYY-MM-DDTHH:MM:SS, YYYY-MM-DD, or a Unix epoch timestamp", field)}
+}
+
+func parseEpochTime(raw string) (time.Time, bool, error) {
+	if raw == "" {
+		return time.Time{}, false, nil
+	}
+	for _, r := range raw {
+		if r < '0' || r > '9' {
+			return time.Time{}, false, nil
+		}
+	}
+
+	value, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return time.Time{}, true, InvalidInputError{Message: "timestamp is out of range"}
+	}
+
+	switch {
+	case len(raw) <= 10:
+		return time.Unix(value, 0), true, nil
+	case len(raw) <= 13:
+		return time.Unix(value/epochMillisDivisor, (value%epochMillisDivisor)*int64(time.Millisecond)), true, nil
+	case len(raw) <= 16:
+		return time.Unix(value/epochMicrosDivisor, (value%epochMicrosDivisor)*int64(time.Microsecond)), true, nil
+	case len(raw) <= 19:
+		return time.Unix(value/epochNanosDivisor, value%epochNanosDivisor), true, nil
+	default:
+		return time.Time{}, true, InvalidInputError{Message: "timestamp is out of range"}
+	}
 }
 
 func validateGroupName(group string) error {
