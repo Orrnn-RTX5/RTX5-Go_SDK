@@ -41,7 +41,7 @@ type APIError struct {
 }
 
 func (e APIError) Error() string {
-	return fmt.Sprintf("api request failed with status %d (response body redacted; %d bytes)", e.StatusCode, len(e.Body))
+	return fmt.Sprintf("api request failed with status %d: %s", e.StatusCode, e.Body)
 }
 
 func (e APIError) APIBody() string {
